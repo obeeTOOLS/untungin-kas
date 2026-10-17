@@ -1,0 +1,6 @@
+{
+  "name": "UNTUNGIN - Buku Kas UMKM",
+  "description": "Platform pencatatan buku kas, arus kas, pembukuan keuangan, dan sistem lisensi PRO untuk pelaku UMKM mandiri.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
