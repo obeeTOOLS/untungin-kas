@@ -14,6 +14,8 @@ import {
   X
 } from 'lucide-react';
 
+import { CurrencyInput } from './CurrencyInput';
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -46,7 +48,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [kategoriUsaha, setKategoriUsaha] = useState('Kuliner & Makanan');
   const [kontak, setKontak] = useState('');
   const [alamat, setAlamat] = useState('');
-  const [saldoAwal, setSaldoAwal] = useState('1000000');
+  const [saldoAwal, setSaldoAwal] = useState<number>(1000000);
   const [regPin, setRegPin] = useState('123456');
 
   const categories = useMemo(() => {
@@ -117,7 +119,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       kategoriUsaha,
       kontak: kontak.trim() || '0812-0000-0000',
       alamat: alamat.trim() || 'Alamat Usaha',
-      saldoAwal: Number(saldoAwal) || 0,
+      saldoAwal: saldoAwal || 0,
       pinKas: regPin.length === 6 ? regPin : '123456'
     });
 
@@ -430,19 +432,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Saldo Kas Awal (Rp)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="10000"
-                  value={saldoAwal}
-                  onChange={e => setSaldoAwal(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs focus:ring-2 focus:ring-emerald-500 outline-none tabular-nums"
-                />
-              </div>
+              <CurrencyInput
+                value={saldoAwal}
+                onChange={setSaldoAwal}
+                label="Saldo Kas Awal (Rp)"
+                placeholder="0"
+                quickAmounts={[500000, 1000000, 2000000, 5000000]}
+                showTerbilang={true}
+              />
             </div>
 
             <div>

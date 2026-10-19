@@ -3,6 +3,8 @@ import { Transaksi, TipeTransaksi, AkunKas } from '../types';
 import { DEFAULT_CATEGORIES } from '../data/seedData';
 import { X, ArrowDownRight, ArrowUpRight, ArrowLeftRight, Calendar, Wallet } from 'lucide-react';
 
+import { CurrencyInput } from './CurrencyInput';
+
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -21,7 +23,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   onSave
 }) => {
   const [tipe, setTipe] = useState<TipeTransaksi>('PEMASUKAN');
-  const [nominal, setNominal] = useState('');
+  const [nominal, setNominal] = useState<number>(0);
   const [kategori, setKategori] = useState('');
   const [akunId, setAkunId] = useState('');
   const [akunTujuanId, setAkunTujuanId] = useState('');
@@ -34,7 +36,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   useEffect(() => {
     if (editingTransaction) {
       setTipe(editingTransaction.tipe);
-      setNominal(editingTransaction.nominal.toString());
+      setNominal(editingTransaction.nominal);
       setKategori(editingTransaction.kategori);
       setAkunId(editingTransaction.akunId);
       setAkunTujuanId(editingTransaction.akunTujuanId || '');
@@ -43,7 +45,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setIsCustom(false);
     } else {
       setTipe('PEMASUKAN');
-      setNominal('');
+      setNominal(0);
       setKategori(DEFAULT_CATEGORIES.pemasukan[0]);
       setAkunId(accounts[0]?.id || 'akun-tunai');
       setAkunTujuanId(accounts[1]?.id || '');
@@ -72,8 +74,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const num = Number(nominal);
-    if (!num || num <= 0) {
+    if (!nominal || nominal <= 0) {
       setError('Nominal harus lebih dari 0.');
       return;
     }
@@ -89,7 +90,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       {
         umkmId,
         tipe,
-        nominal: num,
+        nominal,
         kategori: finalKategori,
         akunId,
         akunTujuanId: tipe === 'TRANSFER' ? akunTujuanId : undefined,
@@ -171,42 +172,17 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </button>
           </div>
 
-          {/* Nominal Input with Big Touch Format */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Nominal Transaksi (Rp) *
-            </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 text-base">
-                Rp
-              </span>
-              <input
-                type="number"
-                min="1"
-                step="1000"
-                required
-                autoFocus
-                placeholder="0"
-                value={nominal}
-                onChange={e => setNominal(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-lg font-bold tabular-nums outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            {/* Quick Amount Buttons */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {quickAmounts.map(amt => (
-                <button
-                  key={amt}
-                  type="button"
-                  onClick={() => setNominal(amt.toString())}
-                  className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 tabular-nums transition"
-                >
-                  +{amt.toLocaleString('id-ID')}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Nominal Input with Auto Thousand Separator & Live Terbilang */}
+          <CurrencyInput
+            value={nominal}
+            onChange={setNominal}
+            label="Nominal Transaksi (Rp)"
+            required
+            autoFocus
+            size="lg"
+            quickAmounts={quickAmounts}
+            showTerbilang={true}
+          />
 
           {/* Tanggal & Kategori */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

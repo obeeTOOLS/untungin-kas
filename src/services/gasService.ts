@@ -2,17 +2,22 @@ import { UMKMProfile, Transaksi, AkunKas, VoucherPro, AuditLog } from '../types'
 import { SEED_PROFILES } from '../data/seedProfiles';
 import { DEFAULT_ACCOUNTS, SEED_VOUCHERS, getSampleTransactions } from '../data/seedData';
 
-export const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
-export const SPREADSHEET_ID = '1l_MT50H0blcu771UYMm6Tqc4Q1R2s4U2iOglx-cW4kE';
+export const GAS_ENDPOINT = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAS_API_URL) 
+  ? import.meta.env.VITE_GAS_API_URL 
+  : 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
+
+export const SPREADSHEET_ID = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SPREADSHEET_ID)
+  ? import.meta.env.VITE_SPREADSHEET_ID
+  : '1l_MT50H0blcu771UYMm6Tqc4Q1R2s4U2iOglx-cW4kE';
 
 const STORAGE_KEYS = {
-  PROFILES: 'untungin_profiles_v1',
-  ACTIVE_PROFILE_ID: 'untungin_active_profile_id_v1',
-  TRANSAKSI: 'untungin_transaksi_v1',
-  AKUN: 'untungin_akun_v1',
-  VOUCHER: 'untungin_voucher_v1',
-  AUDIT: 'untungin_audit_v1',
-  OFFLINE_QUEUE: 'untungin_offline_queue_v1'
+  PROFILES: 'untungin_std_profiles_v1',
+  ACTIVE_PROFILE_ID: 'untungin_std_active_profile_id_v1',
+  TRANSAKSI: 'untungin_std_transaksi_v1',
+  AKUN: 'untungin_std_akun_v1',
+  VOUCHER: 'untungin_std_voucher_v1',
+  AUDIT: 'untungin_std_audit_v1',
+  OFFLINE_QUEUE: 'untungin_std_offline_queue_v1'
 };
 
 export interface GasPingResponse {
@@ -310,7 +315,9 @@ class GasService {
       };
     }
 
-    const newId = `trx-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const timestamp = Math.floor(Date.now() / 1000);
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const newId = `TX-STD-${timestamp}-${randomSuffix}`;
     const now = new Date().toISOString();
     const newTrx: Transaksi = {
       ...trxData,
@@ -326,8 +333,8 @@ class GasService {
     // Update account balance
     this.applyAccountBalanceDelta(newTrx, 'ADD');
 
-    this.logAudit(trxData.umkmId, 'TAMBAH_TRANSAKSI', `${newTrx.tipe} Rp ${newTrx.nominal.toLocaleString('id-ID')} (${newTrx.kategori})`);
-    this.dispatchToGas({ action: 'tambahTransaksi', transaction: newTrx });
+    this.logAudit(trxData.umkmId, 'TAMBAH_TRANSAKSI', `${newTrx.tipe} Rp ${newTrx.nominal.toLocaleString('id-ID')} (${newTrx.kategori}) [${newId}]`);
+    this.dispatchToGas({ action: 'pushTransaksi', transaction: newTrx });
 
     return { success: true, transaction: newTrx };
   }
@@ -354,7 +361,7 @@ class GasService {
     this.applyAccountBalanceDelta(updatedTrx, 'ADD');
 
     this.logAudit(oldTrx.umkmId, 'EDIT_TRANSAKSI', `Smart Update transaksi #${trxId.slice(-6)}: ${updatedTrx.keterangan}`);
-    this.dispatchToGas({ action: 'smartUpdate', transactionId: trxId, data: updatedTrx });
+    this.dispatchToGas({ action: 'pushTransaksi', transaction: updatedTrx });
 
     return true;
   }
@@ -371,7 +378,7 @@ class GasService {
     this.applyAccountBalanceDelta(deleted, 'REVERT');
 
     this.logAudit(deleted.umkmId, 'HAPUS_TRANSAKSI', `Smart Delete transaksi #${trxId.slice(-6)} senilai Rp ${deleted.nominal.toLocaleString('id-ID')}`);
-    this.dispatchToGas({ action: 'smartDelete', transactionId: trxId });
+    this.dispatchToGas({ action: 'deleteTransaksi', transactionId: trxId });
 
     return true;
   }

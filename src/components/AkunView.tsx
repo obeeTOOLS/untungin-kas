@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AkunKas, TipeAkun } from '../types';
 import { Wallet, Plus, ArrowLeftRight, Landmark, QrCode, Banknote, X, Check } from 'lucide-react';
+import { CurrencyInput } from './CurrencyInput';
 
 interface AkunViewProps {
   accounts: AkunKas[];
@@ -18,7 +19,7 @@ export const AkunView: React.FC<AkunViewProps> = ({
   const [tipe, setTipe] = useState<TipeAkun>('BANK');
   const [nomorRekening, setNomorRekening] = useState('');
   const [atasNama, setAtasNama] = useState('');
-  const [saldo, setSaldo] = useState('0');
+  const [saldo, setSaldo] = useState<number>(0);
 
   const totalSaldo = accounts.reduce((acc, a) => acc + a.saldo, 0);
 
@@ -32,7 +33,7 @@ export const AkunView: React.FC<AkunViewProps> = ({
       tipe,
       nomorRekening: nomorRekening.trim(),
       atasNama: atasNama.trim(),
-      saldo: Number(saldo) || 0,
+      saldo: saldo || 0,
       warna: tipe === 'BANK' ? '#0066b2' : tipe === 'QRIS' ? '#f59e0b' : '#10b981'
     });
 
@@ -40,7 +41,7 @@ export const AkunView: React.FC<AkunViewProps> = ({
     setNama('');
     setNomorRekening('');
     setAtasNama('');
-    setSaldo('0');
+    setSaldo(0);
   };
 
   const getAccountIcon = (tipe: TipeAkun) => {
@@ -198,19 +199,14 @@ export const AkunView: React.FC<AkunViewProps> = ({
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Saldo Awal (Rp)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="10000"
-                  value={saldo}
-                  onChange={e => setSaldo(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs outline-none focus:ring-2 focus:ring-emerald-500 tabular-nums"
-                />
-              </div>
+              <CurrencyInput
+                value={saldo}
+                onChange={setSaldo}
+                label="Saldo Awal Rekening (Rp)"
+                placeholder="0"
+                quickAmounts={[500000, 1000000, 2500000, 5000000]}
+                showTerbilang={true}
+              />
 
               <button
                 type="submit"
