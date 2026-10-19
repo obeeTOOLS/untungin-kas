@@ -69,3 +69,25 @@ export interface RingkasanKeuangan {
   estimasiPajak: number;
   jumlahTransaksi: number;
 }
+
+export type TipeHutangPiutang = 'PIUTANG' | 'HUTANG';
+export type StatusHutangPiutang = 'BELUM_LUNAS' | 'LUNAS';
+
+export interface HutangPiutang {
+  id: string; // DEBT-STD-[TIMESTAMP]-[RANDOM]
+  umkmId: string;
+  namaUsaha: string;
+  tipe: TipeHutangPiutang;
+  pihakTerkait: string; // Nama pembeli / toko supplier
+  kontakWa?: string; // No. WhatsApp / Kontak
+  nominal: number;
+  tanggal: string; // YYYY-MM-DD
+  jatuhTempo: string; // YYYY-MM-DD
+  status: StatusHutangPiutang;
+  keterangan: string;
+  tanggalLunas?: string;
+  transaksiKasId?: string; // ID transaksi kas terkait saat pelunasan otomatis
+  createdAt: string;
+  updatedAt: string;
+}
+

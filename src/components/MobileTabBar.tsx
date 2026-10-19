@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, BookOpen, Plus, Wallet, FileText } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Plus, ReceiptText, Wallet } from 'lucide-react';
 
 interface MobileTabBarProps {
   currentTab: string;
@@ -54,7 +54,20 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
           </button>
         </div>
 
-        {/* Tab 3: Akun Kas */}
+        {/* Tab 3: Hutang & Piutang */}
+        <button
+          onClick={() => onSelectTab('hutang-piutang')}
+          className={`flex flex-col items-center justify-center min-h-[44px] py-1 transition-colors ${
+            currentTab === 'hutang-piutang'
+              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <ReceiptText className={`w-5 h-5 ${currentTab === 'hutang-piutang' ? 'stroke-[2.5]' : 'stroke-2'}`} />
+          <span className="text-[10px] mt-1 font-medium tracking-tight">Hutang</span>
+        </button>
+
+        {/* Tab 4: Akun Kas */}
         <button
           onClick={() => onSelectTab('akun')}
           className={`flex flex-col items-center justify-center min-h-[44px] py-1 transition-colors ${
@@ -65,19 +78,6 @@ export const MobileTabBar: React.FC<MobileTabBarProps> = ({
         >
           <Wallet className={`w-5 h-5 ${currentTab === 'akun' ? 'stroke-[2.5]' : 'stroke-2'}`} />
           <span className="text-[10px] mt-1 font-medium tracking-tight">Akun Kas</span>
-        </button>
-
-        {/* Tab 4: Laporan & Pajak */}
-        <button
-          onClick={() => onSelectTab('laporan')}
-          className={`flex flex-col items-center justify-center min-h-[44px] py-1 transition-colors ${
-            currentTab === 'laporan'
-              ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <FileText className={`w-5 h-5 ${currentTab === 'laporan' ? 'stroke-[2.5]' : 'stroke-2'}`} />
-          <span className="text-[10px] mt-1 font-medium tracking-tight">Laporan</span>
         </button>
 
       </div>

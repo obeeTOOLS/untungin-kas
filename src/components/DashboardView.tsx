@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { UMKMProfile, Transaksi, AkunKas } from '../types';
+import { UMKMProfile, Transaksi, AkunKas, HutangPiutang } from '../types';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,15 +12,20 @@ import {
   Eye, 
   EyeOff, 
   Info,
-  Calendar
+  Calendar,
+  ReceiptText,
+  AlertTriangle,
+  ArrowDownLeft
 } from 'lucide-react';
 
 interface DashboardViewProps {
   activeProfile: UMKMProfile;
   transactions: Transaksi[];
   accounts: AkunKas[];
+  debts?: HutangPiutang[];
   onOpenAddTrx: (initialType?: 'PEMASUKAN' | 'PENGELUARAN' | 'TRANSFER') => void;
   onNavigateToCashbook: () => void;
+  onNavigateToDebts?: () => void;
   onOpenUpgradeModal: () => void;
 }
 
@@ -28,8 +33,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   activeProfile,
   transactions,
   accounts,
+  debts = [],
   onOpenAddTrx,
   onNavigateToCashbook,
+  onNavigateToDebts,
   onOpenUpgradeModal
 }) => {
   const [showBalance, setShowBalance] = useState(true);
@@ -93,6 +100,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const isPro = activeProfile.statusLisensi === 'PRO';
   const trialTrxCount = transactions.length;
+
+  const debtStats = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    let totalPiutang = 0;
+    let totalHutang = 0;
+    let overdueCount = 0;
+    let dueTodayCount = 0;
+
+    debts.forEach(d => {
+      if (d.status === 'BELUM_LUNAS') {
+        if (d.tipe === 'PIUTANG') totalPiutang += d.nominal;
+        else totalHutang += d.nominal;
+
+        if (d.jatuhTempo < today) overdueCount++;
+        else if (d.jatuhTempo === today) dueTodayCount++;
+      }
+    });
+
+    return { totalPiutang, totalHutang, overdueCount, dueTodayCount, totalAttention: overdueCount + dueTodayCount };
+  }, [debts]);
 
   return (
     <div className="space-y-6 pb-20 md:pb-8">
@@ -296,6 +323,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <span>Transfer Antar-Akun</span>
         </button>
       </div>
+
+      {/* Credit Health Quick Overview Strip (Hutang & Piutang) */}
+      {debts.length > 0 && onNavigateToDebts && (
+        <div 
+          onClick={onNavigateToDebts}
+          className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+              <ReceiptText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                  Buku Catatan Hutang & Piutang
+                </h4>
+                {debtStats.totalAttention > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    <span>{debtStats.totalAttention} Jatuh Tempo</span>
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Piutang Bon Pelanggan: <strong className="text-cyan-600 dark:text-cyan-400">Rp {debtStats.totalPiutang.toLocaleString('id-ID')}</strong> · Hutang Supplier: <strong className="text-amber-600 dark:text-amber-400">Rp {debtStats.totalHutang.toLocaleString('id-ID')}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end text-xs font-bold text-cyan-600 dark:text-cyan-400 gap-1 shrink-0">
+            <span>Kelola Bon & Kewajiban</span>
+            <span>→</span>
+          </div>
+        </div>
+      )}
 
       {/* Middle Grid: Cashflow Visualizer & Estimasi Pajak PP 55/PP 23 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

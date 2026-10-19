@@ -1,4 +1,4 @@
-import { AkunKas, VoucherPro, Transaksi } from '../types';
+import { AkunKas, VoucherPro, Transaksi, HutangPiutang } from '../types';
 
 export const DEFAULT_ACCOUNTS: AkunKas[] = [
   {
@@ -200,3 +200,106 @@ export function getSampleTransactions(umkmId: string): Transaksi[] {
     }
   ];
 }
+
+export function getSampleHutangPiutang(umkmId: string, namaUsaha: string): HutangPiutang[] {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const day = d.getDate().toString().padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
+  // Overdue date (3 days ago)
+  const overdueDate = new Date(d);
+  overdueDate.setDate(d.getDate() - 3);
+  const overdueStr = overdueDate.toISOString().split('T')[0];
+
+  // Upcoming date (+5 days)
+  const upcomingDate = new Date(d);
+  upcomingDate.setDate(d.getDate() + 5);
+  const upcomingStr = upcomingDate.toISOString().split('T')[0];
+
+  // Past transaction date (-7 days)
+  const pastTxDate = new Date(d);
+  pastTxDate.setDate(d.getDate() - 7);
+  const pastTxStr = pastTxDate.toISOString().split('T')[0];
+
+  return [
+    {
+      id: 'DEBT-STD-001',
+      umkmId,
+      namaUsaha,
+      tipe: 'PIUTANG',
+      pihakTerkait: 'Ibu Hj. Siti (Warung Berkah)',
+      kontakWa: '081298765432',
+      nominal: 1250000,
+      tanggal: pastTxStr,
+      jatuhTempo: overdueStr, // Overdue
+      status: 'BELUM_LUNAS',
+      keterangan: 'Bon pesanan paket tumpeng & sembako 50 porsi',
+      createdAt: `${pastTxStr}T08:30:00.000Z`,
+      updatedAt: `${pastTxStr}T08:30:00.000Z`
+    },
+    {
+      id: 'DEBT-STD-002',
+      umkmId,
+      namaUsaha,
+      tipe: 'PIUTANG',
+      pihakTerkait: 'Pak Budi Handoko',
+      kontakWa: '085712345678',
+      nominal: 450000,
+      tanggal: pastTxStr,
+      jatuhTempo: todayStr, // Jatuh tempo hari ini
+      status: 'BELUM_LUNAS',
+      keterangan: 'Pembelian langganan bahan baku & konsumsi kantor',
+      createdAt: `${pastTxStr}T10:15:00.000Z`,
+      updatedAt: `${pastTxStr}T10:15:00.000Z`
+    },
+    {
+      id: 'DEBT-STD-003',
+      umkmId,
+      namaUsaha,
+      tipe: 'PIUTANG',
+      pihakTerkait: 'Pak Hendra Saputra',
+      kontakWa: '082188990011',
+      nominal: 350000,
+      tanggal: pastTxStr,
+      jatuhTempo: pastTxStr,
+      status: 'LUNAS',
+      tanggalLunas: todayStr,
+      keterangan: 'Bon nota #042 kopi & cemilan harian',
+      createdAt: `${pastTxStr}T14:00:00.000Z`,
+      updatedAt: `${todayStr}T11:00:00.000Z`
+    },
+    {
+      id: 'DEBT-STD-004',
+      umkmId,
+      namaUsaha,
+      tipe: 'HUTANG',
+      pihakTerkait: 'CV Sumber Pangan Jaya',
+      kontakWa: '081377889900',
+      nominal: 2750000,
+      tanggal: pastTxStr,
+      jatuhTempo: upcomingStr, // Belum jatuh tempo
+      status: 'BELUM_LUNAS',
+      keterangan: 'Faktur tempo bahan baku beras 5 karung & minyak goreng',
+      createdAt: `${pastTxStr}T09:00:00.000Z`,
+      updatedAt: `${pastTxStr}T09:00:00.000Z`
+    },
+    {
+      id: 'DEBT-STD-005',
+      umkmId,
+      namaUsaha,
+      tipe: 'HUTANG',
+      pihakTerkait: 'UD Berkah Plastik & Kemasan',
+      kontakWa: '081922334455',
+      nominal: 600000,
+      tanggal: pastTxStr,
+      jatuhTempo: todayStr, // Jatuh tempo hari ini
+      status: 'BELUM_LUNAS',
+      keterangan: 'Pengadaan 1000 pcs cup, plastik sealer, dan kardus packing',
+      createdAt: `${pastTxStr}T11:30:00.000Z`,
+      updatedAt: `${pastTxStr}T11:30:00.000Z`
+    }
+  ];
+}
+

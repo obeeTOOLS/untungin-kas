@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { UMKMProfile, Transaksi, AkunKas, AuditLog } from './types';
+import { UMKMProfile, Transaksi, AkunKas, AuditLog, HutangPiutang } from './types';
 import { gasService } from './services/gasService';
 import { Navbar } from './components/Navbar';
 import { MobileTabBar } from './components/MobileTabBar';
 import { DashboardView } from './components/DashboardView';
 import { TransaksiView } from './components/TransaksiView';
+import { HutangPiutangView } from './components/HutangPiutangView';
 import { AkunView } from './components/AkunView';
 import { LaporanView } from './components/LaporanView';
 import { AuditLogView } from './components/AuditLogView';
@@ -21,6 +22,7 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaksi[]>([]);
   const [accounts, setAccounts] = useState<AkunKas[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [debts, setDebts] = useState<HutangPiutang[]>([]);
 
   // Navigation tab
   const [currentTab, setCurrentTab] = useState<string>('dashboard');
@@ -76,6 +78,9 @@ export default function App() {
     const accs = gasService.getAccounts();
     setAccounts(accs);
 
+    const debtList = gasService.getHutangPiutang(active?.id);
+    setDebts(debtList);
+
     const logs = gasService.getAuditLogs(active?.id);
     setAuditLogs(logs);
   }, []);
@@ -91,6 +96,8 @@ export default function App() {
     setActiveProfile(profile);
     const trx = gasService.getTransactions(profile.id);
     setTransactions(trx);
+    const debtList = gasService.getHutangPiutang(profile.id);
+    setDebts(debtList);
     const logs = gasService.getAuditLogs(profile.id);
     setAuditLogs(logs);
     showToast(`Berhasil masuk ke buku kas ${profile.namaUsaha}`);
@@ -161,6 +168,35 @@ export default function App() {
     return res;
   };
 
+  // Debt & Credit Handlers (Fase 4)
+  const handleAddDebt = (debtData: Omit<HutangPiutang, 'id' | 'createdAt' | 'updatedAt'>) => {
+    gasService.addHutangPiutang(debtData);
+    refreshLocalData();
+    showToast(`Berhasil mencatat ${debtData.tipe === 'PIUTANG' ? 'piutang bon' : 'hutang tempo'} ${debtData.pihakTerkait}`);
+  };
+
+  const handleUpdateDebt = (id: string, updatedData: Partial<HutangPiutang>) => {
+    gasService.updateHutangPiutang(id, updatedData);
+    refreshLocalData();
+    showToast('Catatan hutang/piutang berhasil diperbarui.');
+  };
+
+  const handleDeleteDebt = (id: string) => {
+    gasService.deleteHutangPiutang(id);
+    refreshLocalData();
+    showToast('Catatan hutang/piutang berhasil dihapus.');
+  };
+
+  const handleSettleDebt = (id: string, options?: { recordToCashbook: boolean; akunId?: string }) => {
+    const res = gasService.settleHutangPiutang(id, options);
+    if (res.success) {
+      refreshLocalData();
+      showToast(res.message || 'Catatan berhasil ditandai lunas.');
+    } else {
+      showToast(res.message || 'Gagal menandai lunas.', 'error');
+    }
+  };
+
   if (!activeProfile) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white p-4">
@@ -199,11 +235,13 @@ export default function App() {
             activeProfile={activeProfile}
             transactions={transactions}
             accounts={accounts}
+            debts={debts}
             onOpenAddTrx={(initialType) => {
               setEditingTransaction(null);
               setIsTrxModalOpen(true);
             }}
             onNavigateToCashbook={() => setCurrentTab('transaksi')}
+            onNavigateToDebts={() => setCurrentTab('hutang-piutang')}
             onOpenUpgradeModal={() => setIsProModalOpen(true)}
           />
         )}
@@ -222,6 +260,18 @@ export default function App() {
               setIsTrxModalOpen(true);
             }}
             onDeleteTrx={handleDeleteTransaction}
+          />
+        )}
+
+        {currentTab === 'hutang-piutang' && (
+          <HutangPiutangView
+            activeProfile={activeProfile}
+            accounts={accounts}
+            records={debts}
+            onAddRecord={handleAddDebt}
+            onUpdateRecord={handleUpdateDebt}
+            onDeleteRecord={handleDeleteDebt}
+            onSettleRecord={handleSettleDebt}
           />
         )}
 

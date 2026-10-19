@@ -1,6 +1,6 @@
-import { UMKMProfile, Transaksi, AkunKas, VoucherPro, AuditLog } from '../types';
+import { UMKMProfile, Transaksi, AkunKas, VoucherPro, AuditLog, HutangPiutang } from '../types';
 import { SEED_PROFILES } from '../data/seedProfiles';
-import { DEFAULT_ACCOUNTS, SEED_VOUCHERS, getSampleTransactions } from '../data/seedData';
+import { DEFAULT_ACCOUNTS, SEED_VOUCHERS, getSampleTransactions, getSampleHutangPiutang } from '../data/seedData';
 
 export const GAS_ENDPOINT = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAS_API_URL) 
   ? import.meta.env.VITE_GAS_API_URL 
@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   AKUN: 'untungin_std_akun_v1',
   VOUCHER: 'untungin_std_voucher_v1',
   AUDIT: 'untungin_std_audit_v1',
+  HUTANG_PIUTANG: 'untungin_std_debt_records_v1',
   OFFLINE_QUEUE: 'untungin_std_offline_queue_v1'
 };
 
@@ -58,6 +59,10 @@ class GasService {
       if (!localStorage.getItem(STORAGE_KEYS.TRANSAKSI)) {
         const defaultTrx = getSampleTransactions(SEED_PROFILES[0].id);
         localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(defaultTrx));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.HUTANG_PIUTANG)) {
+        const defaultDebt = getSampleHutangPiutang(SEED_PROFILES[0].id, SEED_PROFILES[0].namaUsaha);
+        localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(defaultDebt));
       }
       if (!localStorage.getItem(STORAGE_KEYS.AUDIT)) {
         localStorage.setItem(STORAGE_KEYS.AUDIT, JSON.stringify([
@@ -436,6 +441,213 @@ class GasService {
     } catch {
       return SEED_VOUCHERS;
     }
+  }
+
+  // Hutang & Piutang Management (Fase 4)
+  getHutangPiutang(umkmId?: string): HutangPiutang[] {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.HUTANG_PIUTANG);
+      const all: HutangPiutang[] = raw ? JSON.parse(raw) : [];
+      if (!umkmId) return all;
+      return all.filter(h => h.umkmId === umkmId);
+    } catch {
+      return [];
+    }
+  }
+
+  addHutangPiutang(data: Omit<HutangPiutang, 'id' | 'createdAt' | 'updatedAt'>): HutangPiutang {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const newId = `DEBT-STD-${timestamp}-${randomSuffix}`;
+    const now = new Date().toISOString();
+
+    const newDebt: HutangPiutang = {
+      ...data,
+      id: newId,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    const allDebts = this.getHutangPiutang();
+    allDebts.unshift(newDebt);
+    localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(allDebts));
+
+    this.logAudit(
+      data.umkmId,
+      'CATAT_HUTANG_PIUTANG',
+      `Catat ${data.tipe}: ${data.pihakTerkait} senilai Rp ${data.nominal.toLocaleString('id-ID')} [${newId}]`
+    );
+
+    // Sync to GAS Engine v1.1
+    this.dispatchToGas({
+      action: 'pushHutangPiutang',
+      data: {
+        id: newDebt.id,
+        namaUsaha: newDebt.namaUsaha,
+        tipe: newDebt.tipe,
+        pihakTerkait: newDebt.pihakTerkait,
+        kontakWa: newDebt.kontakWa || '',
+        nominal: newDebt.nominal,
+        tanggal: newDebt.tanggal,
+        jatuhTempo: newDebt.jatuhTempo,
+        status: newDebt.status,
+        keterangan: newDebt.keterangan
+      }
+    });
+
+    return newDebt;
+  }
+
+  updateHutangPiutang(id: string, updatedData: Partial<HutangPiutang>): boolean {
+    const allDebts = this.getHutangPiutang();
+    const idx = allDebts.findIndex(d => d.id === id);
+    if (idx === -1) return false;
+
+    const updated: HutangPiutang = {
+      ...allDebts[idx],
+      ...updatedData,
+      updatedAt: new Date().toISOString()
+    };
+
+    allDebts[idx] = updated;
+    localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(allDebts));
+
+    this.logAudit(
+      updated.umkmId,
+      'EDIT_HUTANG_PIUTANG',
+      `Update ${updated.tipe} #${id.slice(-6)}: ${updated.pihakTerkait}`
+    );
+
+    this.dispatchToGas({
+      action: 'pushHutangPiutang',
+      data: {
+        id: updated.id,
+        namaUsaha: updated.namaUsaha,
+        tipe: updated.tipe,
+        pihakTerkait: updated.pihakTerkait,
+        kontakWa: updated.kontakWa || '',
+        nominal: updated.nominal,
+        tanggal: updated.tanggal,
+        jatuhTempo: updated.jatuhTempo,
+        status: updated.status,
+        keterangan: updated.keterangan
+      }
+    });
+
+    return true;
+  }
+
+  deleteHutangPiutang(id: string): boolean {
+    const allDebts = this.getHutangPiutang();
+    const idx = allDebts.findIndex(d => d.id === id);
+    if (idx === -1) return false;
+
+    const [deleted] = allDebts.splice(idx, 1);
+    localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(allDebts));
+
+    this.logAudit(
+      deleted.umkmId,
+      'HAPUS_HUTANG_PIUTANG',
+      `Hapus ${deleted.tipe} #${id.slice(-6)}: ${deleted.pihakTerkait} Rp ${deleted.nominal.toLocaleString('id-ID')}`
+    );
+
+    this.dispatchToGas({ action: 'deleteHutangPiutang', id });
+
+    return true;
+  }
+
+  settleHutangPiutang(
+    id: string,
+    options?: { recordToCashbook: boolean; akunId?: string }
+  ): { success: boolean; cashTransaction?: Transaksi; message?: string } {
+    const allDebts = this.getHutangPiutang();
+    const idx = allDebts.findIndex(d => d.id === id);
+    if (idx === -1) return { success: false, message: 'Catatan tidak ditemukan.' };
+
+    const debt = allDebts[idx];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    let createdCashTrx: Transaksi | undefined = undefined;
+
+    // Pelunasan Cerdas: Catat otomatis ke Buku Kas jika dipilih
+    if (options?.recordToCashbook) {
+      const defaultAccount = this.getAccounts().find(a => a.isDefault) || this.getAccounts()[0];
+      const selectedAkunId = options.akunId || defaultAccount?.id || 'akun-tunai';
+
+      if (debt.tipe === 'PIUTANG') {
+        // Pelunasan piutang = uang masuk (PEMASUKAN)
+        const trxResult = this.addTransaction({
+          umkmId: debt.umkmId,
+          tipe: 'PEMASUKAN',
+          tanggal: todayStr,
+          kategori: 'Pelunasan Piutang',
+          nominal: debt.nominal,
+          akunId: selectedAkunId,
+          keterangan: `Pelunasan piutang: ${debt.pihakTerkait} (${debt.keterangan || 'Bon'})`
+        });
+        if (trxResult.success && trxResult.transaction) {
+          createdCashTrx = trxResult.transaction;
+        }
+      } else {
+        // Pelunasan hutang = uang keluar (PENGELUARAN)
+        const trxResult = this.addTransaction({
+          umkmId: debt.umkmId,
+          tipe: 'PENGELUARAN',
+          tanggal: todayStr,
+          kategori: 'Pelunasan Hutang Supplier',
+          nominal: debt.nominal,
+          akunId: selectedAkunId,
+          keterangan: `Pelunasan hutang ke: ${debt.pihakTerkait} (${debt.keterangan || 'Faktur/Nota'})`
+        });
+        if (trxResult.success && trxResult.transaction) {
+          createdCashTrx = trxResult.transaction;
+        }
+      }
+    }
+
+    // Update status to LUNAS
+    const updatedDebt: HutangPiutang = {
+      ...debt,
+      status: 'LUNAS',
+      tanggalLunas: todayStr,
+      transaksiKasId: createdCashTrx ? createdCashTrx.id : debt.transaksiKasId,
+      updatedAt: new Date().toISOString()
+    };
+
+    allDebts[idx] = updatedDebt;
+    localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(allDebts));
+
+    this.logAudit(
+      debt.umkmId,
+      'LUNAS_HUTANG_PIUTANG',
+      `Pelunasan ${debt.tipe}: ${debt.pihakTerkait} Rp ${debt.nominal.toLocaleString('id-ID')}${
+        createdCashTrx ? ` (Tercatat otomatis di Buku Kas #${createdCashTrx.id.slice(-6)})` : ''
+      }`
+    );
+
+    this.dispatchToGas({
+      action: 'pushHutangPiutang',
+      data: {
+        id: updatedDebt.id,
+        namaUsaha: updatedDebt.namaUsaha,
+        tipe: updatedDebt.tipe,
+        pihakTerkait: updatedDebt.pihakTerkait,
+        kontakWa: updatedDebt.kontakWa || '',
+        nominal: updatedDebt.nominal,
+        tanggal: updatedDebt.tanggal,
+        jatuhTempo: updatedDebt.jatuhTempo,
+        status: updatedDebt.status,
+        keterangan: updatedDebt.keterangan
+      }
+    });
+
+    return {
+      success: true,
+      cashTransaction: createdCashTrx,
+      message: `Berhasil menandai lunas ${debt.tipe === 'PIUTANG' ? 'piutang' : 'hutang'} ${debt.pihakTerkait}.${
+        createdCashTrx ? ' Transaksi kas otomatis tercatat.' : ''
+      }`
+    };
   }
 
   // Audit Logs

@@ -66,6 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {[
               { id: 'dashboard', label: 'Ringkasan' },
               { id: 'transaksi', label: 'Buku Kas' },
+              { id: 'hutang-piutang', label: 'Hutang & Piutang' },
               { id: 'akun', label: 'Akun Kas' },
               { id: 'laporan', label: 'Laporan & Pajak' },
               { id: 'audit', label: 'Log Audit' }
