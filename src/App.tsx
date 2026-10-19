@@ -178,17 +178,19 @@ export default function App() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       
       {/* Top Navbar */}
-      <Navbar
-        activeProfile={activeProfile}
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
-        onOpenProfileSelect={() => setIsAuthModalOpen(true)}
-        onOpenUpgradeModal={() => setIsProModalOpen(true)}
-        onOpenChangePinModal={() => setIsChangePinModalOpen(true)}
-        isBackendConnected={isBackendConnected}
-        isCheckingBackend={isCheckingBackend}
-        onRefreshBackend={checkBackend}
-      />
+      <div className="no-print">
+        <Navbar
+          activeProfile={activeProfile}
+          currentTab={currentTab}
+          onSelectTab={setCurrentTab}
+          onOpenProfileSelect={() => setIsAuthModalOpen(true)}
+          onOpenUpgradeModal={() => setIsProModalOpen(true)}
+          onOpenChangePinModal={() => setIsChangePinModalOpen(true)}
+          isBackendConnected={isBackendConnected}
+          isCheckingBackend={isCheckingBackend}
+          onRefreshBackend={checkBackend}
+        />
+      </div>
 
       {/* Main Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
@@ -248,21 +250,23 @@ export default function App() {
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <MobileTabBar
-        currentTab={currentTab}
-        onSelectTab={setCurrentTab}
-        onOpenAddTrx={() => {
-          setEditingTransaction(null);
-          setIsTrxModalOpen(true);
-        }}
-      />
+      <div className="no-print">
+        <MobileTabBar
+          currentTab={currentTab}
+          onSelectTab={setCurrentTab}
+          onOpenAddTrx={() => {
+            setEditingTransaction(null);
+            setIsTrxModalOpen(true);
+          }}
+        />
 
-      {/* Offline Connectivity Notification */}
-      <OfflineIndicator />
+        {/* Offline Connectivity Notification */}
+        <OfflineIndicator />
+      </div>
 
       {/* Floating Feedback Toast */}
       {toast && (
-        <div className="fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700 animate-slide-in text-xs font-semibold max-w-sm">
+        <div className="no-print fixed top-20 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900 text-white shadow-2xl border border-slate-700 animate-slide-in text-xs font-semibold max-w-sm">
           {toast.type === 'success' ? (
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           ) : (

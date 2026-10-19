@@ -2,34 +2,105 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Transaksi, UMKMProfile, AkunKas } from '../types';
 
-export function exportTransactionsToCSV(transactions: Transaksi[], accounts: AkunKas[], umkm: UMKMProfile) {
+/**
+ * Ekspor data transaksi terpilih ke format CSV / Excel murni (UTF-8 BOM)
+ * dengan penamaan Laporan-Kas-[NamaUsaha]-[Periode].csv
+ */
+export function exportTransactionsToCSV(
+  transactions: Transaksi[],
+  accounts: AkunKas[],
+  umkm: UMKMProfile,
+  periodLabel: string = 'Semua_Waktu'
+) {
   const accountMap = new Map(accounts.map(a => [a.id, a.nama]));
   
-  const headers = ['ID', 'Tanggal', 'Tipe', 'Kategori', 'Nominal (Rp)', 'Akun Sumber', 'Akun Tujuan', 'Keterangan'];
-  const rows = transactions.map(t => [
-    t.id,
-    t.tanggal,
-    t.tipe,
-    `"${t.kategori.replace(/"/g, '""')}"`,
-    t.nominal,
-    `"${(accountMap.get(t.akunId) || t.akunId).replace(/"/g, '""')}"`,
-    `"${(t.akunTujuanId ? accountMap.get(t.akunTujuanId) || t.akunTujuanId : '-').replace(/"/g, '""')}"`,
-    `"${(t.keterangan || '').replace(/"/g, '""')}"`
-  ]);
+  // Format sanitasi nama file
+  const cleanUmkmName = umkm.namaUsaha.replace(/[^a-zA-Z0-9]/g, '_');
+  const cleanPeriod = periodLabel.replace(/[^a-zA-Z0-9]/g, '_');
+  const fileName = `Laporan-Kas-${cleanUmkmName}-${cleanPeriod}.csv`;
 
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + 
-    [`# BUKU KAS: ${umkm.namaUsaha} - Pemilik: ${umkm.pemilik}`, headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+  // Hitung ringkasan
+  let totalMasuk = 0;
+  let totalKeluar = 0;
+  transactions.forEach(t => {
+    if (t.tipe === 'PEMASUKAN') totalMasuk += t.nominal;
+    else if (t.tipe === 'PENGELUARAN') totalKeluar += t.nominal;
+  });
+  const kasBersih = totalMasuk - totalKeluar;
 
-  const encodedUri = encodeURI(csvContent);
+  // Header meta & kolom
+  const metaLines = [
+    `"LAPORAN BUKU KAS UMKM - UNTUNGIN STANDALONE"`,
+    `"Nama Usaha:","${umkm.namaUsaha.replace(/"/g, '""')}"`,
+    `"Pemilik:","${umkm.pemilik.replace(/"/g, '""')}"`,
+    `"Kontak:","${umkm.kontak.replace(/"/g, '""')}"`,
+    `"Periode:","${periodLabel.replace(/"/g, '""')}"`,
+    `"Tanggal Ekspor:","${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}"`,
+    `"Total Pemasukan:",${totalMasuk}`,
+    `"Total Pengeluaran:",${totalKeluar}`,
+    `"Kas Bersih (Net):",${kasBersih}`,
+    `` // Baris kosong pemisah
+  ];
+
+  const headers = ['No', 'ID Transaksi', 'Tanggal', 'Tipe Mutasi', 'Akun Kas', 'Kategori', 'Keterangan', 'Pemasukan (Rp)', 'Pengeluaran (Rp)', 'Saldo Kas (Rp)'];
+
+  let runningBalance = 0;
+  // Urutkan transaksi secara kronologis untuk kalkulasi saldo berjalan
+  const sorted = [...transactions].sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+  const rows = sorted.map((t, idx) => {
+    const accName = accountMap.get(t.akunId) || t.akunId;
+    const destName = t.akunTujuanId ? ` -> ${accountMap.get(t.akunTujuanId) || t.akunTujuanId}` : '';
+    
+    let masuk = 0;
+    let keluar = 0;
+    if (t.tipe === 'PEMASUKAN') {
+      masuk = t.nominal;
+      runningBalance += t.nominal;
+    } else if (t.tipe === 'PENGELUARAN') {
+      keluar = t.nominal;
+      runningBalance -= t.nominal;
+    } else if (t.tipe === 'TRANSFER') {
+      // Transfer antar-rekening tidak mengubah kas konsolidasi
+    }
+
+    return [
+      idx + 1,
+      `"${t.id}"`,
+      `"${t.tanggal}"`,
+      `"${t.tipe}"`,
+      `"${(accName + destName).replace(/"/g, '""')}"`,
+      `"${t.kategori.replace(/"/g, '""')}"`,
+      `"${(t.keterangan || '-').replace(/"/g, '""')}"`,
+      masuk,
+      keluar,
+      runningBalance
+    ].join(',');
+  });
+
+  // Gabungkan dengan UTF-8 Byte Order Mark (BOM) agar Excel tidak rusak membaca aksen/angka
+  const csvContent = '\uFEFF' + [...metaLines, headers.join(','), ...rows].join('\r\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  link.setAttribute('href', encodedUri);
-  link.setAttribute('download', `Buku_Kas_${umkm.namaUsaha.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+  link.setAttribute('href', url);
+  link.setAttribute('download', fileName);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
-export function exportTransactionsToPDF(transactions: Transaksi[], accounts: AkunKas[], umkm: UMKMProfile, periodText: string = 'Bulan Ini') {
+/**
+ * Ekspor dokumen PDF resmi menggunakan jsPDF
+ */
+export function exportTransactionsToPDF(
+  transactions: Transaksi[],
+  accounts: AkunKas[],
+  umkm: UMKMProfile,
+  periodText: string = 'Bulan Ini'
+) {
   const accountMap = new Map(accounts.map(a => [a.id, a.nama]));
   
   const doc = new jsPDF({
@@ -161,5 +232,5 @@ export function exportTransactionsToPDF(transactions: Transaksi[], accounts: Aku
     doc.text(`( ${umkm.pemilik} )`, 150, finalY + 20);
   }
 
-  doc.save(`Laporan_Kas_${umkm.namaUsaha.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  doc.save(`Laporan-Kas-${umkm.namaUsaha.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
 }

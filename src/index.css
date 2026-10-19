@@ -45,3 +45,63 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(100, 116, 139, 0.6);
 }
+
+/* Print Optimization for Formal Financial Statements & Receipts */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 15mm 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt;
+    line-height: 1.35;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Hide app navigation and interactive screen controls */
+  header,
+  nav,
+  .no-print,
+  button:not(.print-allow),
+  .mobile-tab-bar,
+  .offline-indicator {
+    display: none !important;
+  }
+
+  /* Show dedicated print document layout */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Table break handling */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  tr, .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  th, td {
+    padding: 6px 8px !important;
+  }
+}
