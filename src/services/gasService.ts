@@ -12,7 +12,9 @@ export const SPREADSHEET_ID = (typeof import.meta !== 'undefined' && import.meta
 
 const STORAGE_KEYS = {
   PROFILES: 'untungin_std_profiles_v1',
+  PROFILES_VERSION: 'untungin_std_profiles_version',
   ACTIVE_PROFILE_ID: 'untungin_std_active_profile_id_v1',
+  ACTIVE_BUSINESS: 'untungin_std_active_business',
   TRANSAKSI: 'untungin_std_transaksi_v1',
   AKUN: 'untungin_std_akun_v1',
   VOUCHER: 'untungin_std_voucher_v1',
@@ -36,7 +38,7 @@ class GasService {
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => {
         this.isOnline = true;
-        this.processQueue();
+        this.flushQueue();
       });
       window.addEventListener('offline', () => {
         this.isOnline = false;
@@ -47,8 +49,21 @@ class GasService {
 
   private initStorage() {
     try {
-      if (!localStorage.getItem(STORAGE_KEYS.PROFILES)) {
+      const storedProfilesRaw = localStorage.getItem(STORAGE_KEYS.PROFILES);
+      const version = localStorage.getItem(STORAGE_KEYS.PROFILES_VERSION);
+      
+      // Auto-migrate to 61 official GEKRAFS Kota Batu profiles if old mock dataset is detected
+      const needsMigration = 
+        !storedProfilesRaw || 
+        version !== 'v2_official_gekrafs_61' || 
+        storedProfilesRaw.includes('Warung Kopi Kenangan Nusantara') ||
+        !storedProfilesRaw.includes('obeecreatives');
+
+      if (needsMigration) {
         localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(SEED_PROFILES));
+        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v2_official_gekrafs_61');
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, SEED_PROFILES[0].id);
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, SEED_PROFILES[0].namaUsaha);
       }
       if (!localStorage.getItem(STORAGE_KEYS.AKUN)) {
         localStorage.setItem(STORAGE_KEYS.AKUN, JSON.stringify(DEFAULT_ACCOUNTS));
@@ -153,30 +168,56 @@ class GasService {
     }
   }
 
-  private async processQueue() {
+  getOfflineQueueCount(): number {
     try {
       const queueRaw = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
-      if (!queueRaw) return;
+      if (!queueRaw) return 0;
       const queue = JSON.parse(queueRaw);
-      if (!queue.length) return;
+      return Array.isArray(queue) ? queue.length : 0;
+    } catch {
+      return 0;
+    }
+  }
 
+  async flushQueue(): Promise<{ total: number; synced: number }> {
+    try {
+      const queueRaw = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+      if (!queueRaw) return { total: 0, synced: 0 };
+      const queue = JSON.parse(queueRaw);
+      if (!Array.isArray(queue) || !queue.length) return { total: 0, synced: 0 };
+
+      const total = queue.length;
+      let synced = 0;
       const remaining = [];
+
       for (const item of queue) {
         try {
           const res = await fetch(GAS_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(item.payload),
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(6000)
           });
-          if (!res.ok) remaining.push(item);
+          if (res.ok) {
+            synced++;
+          } else {
+            remaining.push(item);
+          }
         } catch {
           remaining.push(item);
         }
       }
+
       localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(remaining));
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('untungin:queue_flushed', { detail: { total, synced } }));
+      }
+
+      return { total, synced };
     } catch (e) {
       console.warn('Process queue error:', e);
+      return { total: 0, synced: 0 };
     }
   }
 
@@ -197,13 +238,27 @@ class GasService {
   getActiveProfile(): UMKMProfile {
     const profiles = this.getProfiles();
     const activeId = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROFILE_ID);
-    const found = profiles.find(p => p.id === activeId);
-    return found || profiles[0];
+    const activeBusiness = localStorage.getItem(STORAGE_KEYS.ACTIVE_BUSINESS);
+    
+    let found = profiles.find(p => p.id === activeId);
+    if (!found && activeBusiness) {
+      found = profiles.find(p => p.namaUsaha.toLowerCase() === activeBusiness.toLowerCase());
+    }
+    const current = found || profiles[0];
+    if (current) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, current.id);
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, current.namaUsaha);
+    }
+    return current;
   }
 
   setActiveProfileId(id: string): void {
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, id);
-    this.logAudit(id, 'LOGIN_PROFIL', `Masuk ke profil usaha ${this.getProfileById(id)?.namaUsaha || id}`);
+    const profile = this.getProfileById(id);
+    if (profile) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, profile.namaUsaha);
+    }
+    this.logAudit(id, 'LOGIN_PROFIL', `Masuk ke profil usaha ${profile?.namaUsaha || id}`);
   }
 
   verifyPin(profileId: string, enteredPin: string): boolean {
@@ -231,17 +286,30 @@ class GasService {
     const newProfile: UMKMProfile = {
       ...profileData,
       id: newId,
-      statusLisensi: 'TRIAL',
-      lisensiExpiredAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      durasiPaket: 'Trial',
-      createdAt: new Date().toISOString().split('T')[0]
+      statusLisensi: 'PRO',
+      lisensiExpiredAt: 'LIFETIME',
+      durasiPaket: 'Lifetime',
+      createdAt: new Date().toISOString().split('T')[0],
+      isPro: true
     };
 
     profiles.unshift(newProfile);
     localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(profiles));
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, newId);
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, newProfile.namaUsaha);
     this.logAudit(newId, 'DAFTAR_USAHA_BARU', `Pendaftaran usaha baru: ${newProfile.namaUsaha}`);
-    this.dispatchToGas({ action: 'daftarUsaha', profile: newProfile });
+    
+    // Otomatis mengirim action: 'syncProfil' ke endpoint Google Apps Script Vault
+    this.dispatchToGas({
+      action: 'syncProfil',
+      profile: newProfile,
+      namaUsaha: newProfile.namaUsaha,
+      pemilik: newProfile.pemilik,
+      kategori: newProfile.kategoriUsaha,
+      kontak: newProfile.kontak,
+      alamat: newProfile.alamat,
+      statusLisensi: newProfile.statusLisensi
+    });
     return newProfile;
   }
 

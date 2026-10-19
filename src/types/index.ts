@@ -2,6 +2,16 @@ export type TipeTransaksi = 'PEMASUKAN' | 'PENGELUARAN' | 'TRANSFER';
 export type StatusLisensi = 'TRIAL' | 'PRO';
 export type TipeAkun = 'TUNAI' | 'BANK' | 'EWALLET' | 'QRIS';
 
+export interface BusinessProfile {
+  namaUsaha: string;
+  namaPemilik: string;
+  kategori: string; // Subsektor
+  whatsapp: string;
+  kotaKabupaten: string;
+  statusLisensi: 'PRO' | 'TRIAL';
+  isPro: boolean;
+}
+
 export interface UMKMProfile {
   id: string;
   namaUsaha: string;
@@ -15,6 +25,9 @@ export interface UMKMProfile {
   pinKas: string; // 6-digit PIN
   saldoAwal: number;
   createdAt: string;
+  whatsapp?: string;
+  kotaKabupaten?: string;
+  isPro?: boolean;
 }
 
 export interface Transaksi {

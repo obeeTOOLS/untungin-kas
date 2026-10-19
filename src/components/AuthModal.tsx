@@ -51,24 +51,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [saldoAwal, setSaldoAwal] = useState<number>(1000000);
   const [regPin, setRegPin] = useState('123456');
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    profiles.forEach(p => {
-      const mainCat = p.kategoriUsaha.split('&')[0].trim();
-      set.add(mainCat);
-    });
-    return Array.from(set);
-  }, [profiles]);
+  const CATEGORY_TABS = [
+    { id: 'ALL', label: `Semua (${profiles.length})` },
+    { id: 'Kuliner', label: 'Kuliner' },
+    { id: 'Fashion', label: 'Fashion' },
+    { id: 'Kriya', label: 'Kriya' },
+    { id: 'Fotografi', label: 'Fotografi' },
+    { id: 'Jasa & Wisata', label: 'Jasa & Wisata' }
+  ];
 
   const filteredProfiles = useMemo(() => {
     return profiles.filter(p => {
+      const q = searchQuery.toLowerCase().trim();
       const matchQuery =
-        p.namaUsaha.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.pemilik.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.alamat.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchCat =
-        selectedCategory === 'ALL' ||
-        p.kategoriUsaha.toLowerCase().includes(selectedCategory.toLowerCase());
+        !q ||
+        p.namaUsaha.toLowerCase().includes(q) ||
+        p.pemilik.toLowerCase().includes(q) ||
+        p.kategoriUsaha.toLowerCase().includes(q) ||
+        (p.alamat && p.alamat.toLowerCase().includes(q)) ||
+        (p.kontak && p.kontak.includes(q));
+
+      let matchCat = true;
+      if (selectedCategory === 'Kuliner') {
+        matchCat = p.kategoriUsaha.toLowerCase().includes('kuliner') ||
+                   p.kategoriUsaha.toLowerCase().includes('kopi') ||
+                   p.kategoriUsaha.toLowerCase().includes('makanan');
+      } else if (selectedCategory === 'Fashion') {
+        matchCat = p.kategoriUsaha.toLowerCase().includes('fashion') ||
+                   p.kategoriUsaha.toLowerCase().includes('mua') ||
+                   p.kategoriUsaha.toLowerCase().includes('busana') ||
+                   p.kategoriUsaha.toLowerCase().includes('olahraga');
+      } else if (selectedCategory === 'Kriya') {
+        matchCat = p.kategoriUsaha.toLowerCase().includes('kriya') ||
+                   p.kategoriUsaha.toLowerCase().includes('rajut') ||
+                   p.kategoriUsaha.toLowerCase().includes('kerajinan') ||
+                   p.kategoriUsaha.toLowerCase().includes('aksesoris');
+      } else if (selectedCategory === 'Fotografi') {
+        matchCat = p.kategoriUsaha.toLowerCase().includes('fotografi') ||
+                   p.kategoriUsaha.toLowerCase().includes('kreatif') ||
+                   p.kategoriUsaha.toLowerCase().includes('broadcasting') ||
+                   p.kategoriUsaha.toLowerCase().includes('desain');
+      } else if (selectedCategory === 'Jasa & Wisata') {
+        matchCat = p.kategoriUsaha.toLowerCase().includes('jasa') ||
+                   p.kategoriUsaha.toLowerCase().includes('wisata') ||
+                   p.kategoriUsaha.toLowerCase().includes('travel') ||
+                   p.kategoriUsaha.toLowerCase().includes('rental') ||
+                   p.kategoriUsaha.toLowerCase().includes('hospitality') ||
+                   p.kategoriUsaha.toLowerCase().includes('event') ||
+                   p.kategoriUsaha.toLowerCase().includes('otomotif') ||
+                   p.kategoriUsaha.toLowerCase().includes('servis');
+      }
+
       return matchQuery && matchCat;
     });
   }, [profiles, searchQuery, selectedCategory]);
@@ -143,13 +176,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </button>
             )}
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white font-display">
                 {step === 'SELECT' && 'Pilih Profil Usaha UMKM'}
                 {step === 'ENTER_PIN' && 'Verifikasi Keamanan PIN Kas'}
                 {step === 'REGISTER' && 'Daftar Profil Usaha Baru'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {step === 'SELECT' && `${profiles.length} Usaha Terdaftar di Database Untungin`}
+                {step === 'SELECT' && '61 Usaha Terdaftar di Database Resmi Untungin'}
                 {step === 'ENTER_PIN' && targetProfile.namaUsaha}
                 {step === 'REGISTER' && 'Mulai pencatatan kas digital untuk usaha Anda'}
               </p>
@@ -172,7 +205,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Cari nama usaha, pemilik, atau kota..."
+                  placeholder="Cari nama usaha, pemilik, WhatsApp, atau kategori..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
@@ -189,32 +222,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
             {/* Quick Category Chips */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs shrink-0 no-scrollbar">
-              <button
-                onClick={() => setSelectedCategory('ALL')}
-                className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
-                  selectedCategory === 'ALL'
-                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
-              >
-                Semua ({profiles.length})
-              </button>
-              {categories.slice(0, 7).map(cat => (
+              {CATEGORY_TABS.map(tab => (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
+                  key={tab.id}
+                  onClick={() => setSelectedCategory(tab.id)}
                   className={`px-3 py-1.5 rounded-lg font-medium whitespace-nowrap transition ${
-                    selectedCategory === cat
-                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold'
+                    selectedCategory === tab.id
+                      ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold shadow-xs'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                   }`}
                 >
-                  {cat}
+                  {tab.label}
                 </button>
               ))}
             </div>
 
-            {/* List of 67 UMKM Profiles */}
+            {/* List of 61 Official UMKM Profiles */}
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
               {filteredProfiles.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
@@ -225,7 +248,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ) : (
                 filteredProfiles.map(p => {
                   const isCurrent = p.id === activeProfile.id;
-                  const isPro = p.statusLisensi === 'PRO';
+                  const isPro = p.statusLisensi === 'PRO' || p.isPro;
 
                   return (
                     <button
@@ -233,7 +256,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onClick={() => handlePickProfile(p)}
                       className={`w-full flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all ${
                         isCurrent
-                          ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20'
+                          ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20 shadow-xs ring-1 ring-emerald-500/30'
                           : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                       }`}
                     >
@@ -250,21 +273,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             <h4 className="text-sm font-bold truncate text-slate-900 dark:text-white">
                               {p.namaUsaha}
                             </h4>
-                            {isPro ? (
-                              <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60">
-                                <Crown className="w-2.5 h-2.5 fill-amber-500" /> PRO
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                                Trial
-                              </span>
-                            )}
+                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/60">
+                              <Crown className="w-2.5 h-2.5 fill-amber-500" /> PRO
+                            </span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                            <span className="truncate">{p.pemilik}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[160px]">{p.pemilik}</span>
                             <span>·</span>
-                            <span className="truncate">{p.kategoriUsaha}</span>
+                            <span className="text-[11px] truncate text-slate-500">{p.kategoriUsaha}</span>
+                            <span>·</span>
+                            <span className="text-[11px] text-slate-400">{p.alamat || 'Kota Batu'}</span>
                           </div>
+                          {p.kontak && (
+                            <div className="flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+                              <Phone className="w-2.5 h-2.5" />
+                              <span>{p.kontak}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
 

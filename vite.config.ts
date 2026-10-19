@@ -14,13 +14,13 @@ export default defineConfig(() => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
         manifest: {
           id: '/',
-          name: 'UNTUNGIN - Buku Kas UMKM',
+          name: 'Untungin - Buku Kas Mandiri UMKM',
           short_name: 'Untungin',
-          description: 'Platform pencatatan buku kas, arus kas, pembukuan keuangan, dan sistem lisensi PRO untuk pelaku UMKM mandiri.',
+          description: 'Aplikasi Pencatatan Kas, Laba/Rugi, dan Hutang Piutang UMKM',
           theme_color: '#001c3c',
           background_color: '#001c3c',
           display: 'standalone',
-          orientation: 'portrait-primary',
+          orientation: 'portrait',
           start_url: '/',
           scope: '/',
           icons: [

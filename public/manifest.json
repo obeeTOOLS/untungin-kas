@@ -1,12 +1,12 @@
 {
   "id": "/",
-  "name": "UNTUNGIN - Buku Kas UMKM",
+  "name": "Untungin - Buku Kas Mandiri UMKM",
   "short_name": "Untungin",
-  "description": "Platform pencatatan buku kas, arus kas, pembukuan keuangan, dan sistem lisensi PRO untuk pelaku UMKM mandiri.",
+  "description": "Aplikasi Pencatatan Kas, Laba/Rugi, dan Hutang Piutang UMKM",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "theme_color": "#001c3c",
   "background_color": "#001c3c",
   "icons": [

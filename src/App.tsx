@@ -14,6 +14,7 @@ import { TransactionModal } from './components/TransactionModal';
 import { ChangePinModal } from './components/ChangePinModal';
 import { ProModal } from './components/ProModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
@@ -312,6 +313,9 @@ export default function App() {
 
         {/* Offline Connectivity Notification */}
         <OfflineIndicator />
+
+        {/* Floating PWA In-App Install Prompt Banner */}
+        <PWAInstallBanner />
       </div>
 
       {/* Floating Feedback Toast */}

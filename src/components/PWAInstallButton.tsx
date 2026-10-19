@@ -16,11 +16,11 @@ export const PWAInstallButton: React.FC = () => {
     return (
       <button
         onClick={install}
-        className="flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all whitespace-nowrap shrink-0"
+        className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 active:scale-95 transition-all whitespace-nowrap shrink-0"
         title="Pasang aplikasi Untungin ke layar utama perangkat"
       >
         <Download className="w-3.5 h-3.5" />
-        <span>Install App</span>
+        <span>Pasang Aplikasi</span>
       </button>
     );
   }
@@ -69,7 +69,7 @@ export const PWAInstallButton: React.FC = () => {
                     2
                   </span>
                   <p>
-                    Ketuk tombol <strong>Bagikan (Share)</strong> di bagian bawah layar Safari (ikon kotak dengan panah atas).
+                    Ketuk tombol <strong>Bagikan (Share)</strong> <span className="inline-flex items-center justify-center px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[11px] font-bold">⎋</span> di Safari.
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
@@ -77,7 +77,7 @@ export const PWAInstallButton: React.FC = () => {
                     3
                   </span>
                   <p>
-                    Gulir ke bawah lalu pilih opsi <strong>Tambahkan ke Layar Utama (Add to Home Screen)</strong>.
+                    Gulir ke bawah lalu pilih <strong>"Tambahkan ke Layar Utama" (Add to Home Screen)</strong>.
                   </p>
                 </div>
               </div>
