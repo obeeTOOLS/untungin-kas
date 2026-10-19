@@ -36,7 +36,7 @@ export const OFFICIAL_PROFILES: BusinessProfile[] = [
   { namaUsaha: "Party Utara", namaPemilik: "Kurnia", kategori: "Jasa & Event", whatsapp: "081234567810", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Moofbride", namaPemilik: "Mufida", kategori: "Fashion & MUA", whatsapp: "085234567811", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Mazedo Inti Jaya", namaPemilik: "Mazedo", kategori: "Kuliner", whatsapp: "081334567812", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
-  { namaUsaha: "Non'k Kitchen", namaPemilik: "Nonik", kategori: "Kuliner", whatsapp: "087834567813", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
+  { namaUsaha: "Non'k Kitchen", namaPemilik: "Enok Sri Kustiyah", kategori: "Kuliner", whatsapp: "081336554420", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Cinematosh Presenter Indonesia", namaPemilik: "Toshiko", kategori: "Broadcasting & Video", whatsapp: "082134567814", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Omah Kreatif Ekomando", namaPemilik: "Eko Mando", kategori: "Kriya & Kerajinan", whatsapp: "081234567815", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Kedai My Wonton", namaPemilik: "Wawan", kategori: "Kuliner", whatsapp: "085634567816", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
@@ -58,12 +58,13 @@ export const OFFICIAL_PROFILES: BusinessProfile[] = [
   { namaUsaha: "Treya Creative Studio", namaPemilik: "Treya", kategori: "Desain Grafis", whatsapp: "081334567832", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Ajang Ombo", namaPemilik: "Hartono", kategori: "Kuliner Tradisional", whatsapp: "087834567833", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Lwegitcake", namaPemilik: "Legita", kategori: "Kuliner", whatsapp: "082134567834", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
-  { namaUsaha: "Keripik Tempe \"Iben\"", namaPemilik: "Iben", kategori: "Kuliner", whatsapp: "081234567835", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
+  { namaUsaha: "Keripik Tempe \"Iben\"", namaPemilik: "Choirul Anisah", kategori: "Kuliner", whatsapp: "085784432076", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Pentol Juara Ngalam", namaPemilik: "Juardi", kategori: "Kuliner", whatsapp: "085634567836", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Sawetu", namaPemilik: "Wetu", kategori: "Kriya", whatsapp: "081334567837", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Teman Lapar", namaPemilik: "Dimas", kategori: "Kuliner", whatsapp: "087734567838", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
   { namaUsaha: "Goodsigma Sportwear", namaPemilik: "Sigma", kategori: "Fashion & Olahraga", whatsapp: "089834567839", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
-  { namaUsaha: "Abhin Sewa", namaPemilik: "Abhinaya", kategori: "Jasa Rental", whatsapp: "081234567840", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true }
+  { namaUsaha: "Abhin Sewa", namaPemilik: "Abhinaya", kategori: "Jasa Rental", whatsapp: "081234567840", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true },
+  { namaUsaha: "Inovasi Pangan Lestari", namaPemilik: "Abdullah Dzikri", kategori: "Kuliner", whatsapp: "082257449290", kotaKabupaten: "Kota Batu", statusLisensi: "PRO", isPro: true }
 ];
 
 export const SEED_PROFILES: UMKMProfile[] = OFFICIAL_PROFILES.map((p, idx) => ({

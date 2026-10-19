@@ -182,7 +182,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 {step === 'REGISTER' && 'Daftar Profil Usaha Baru'}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {step === 'SELECT' && '61 Usaha Terdaftar di Database Resmi Untungin'}
+                {step === 'SELECT' && `${profiles.length} Usaha Terdaftar di Database Resmi Untungin`}
                 {step === 'ENTER_PIN' && targetProfile.namaUsaha}
                 {step === 'REGISTER' && 'Mulai pencatatan kas digital untuk usaha Anda'}
               </p>

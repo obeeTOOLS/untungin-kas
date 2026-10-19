@@ -52,16 +52,29 @@ class GasService {
       const storedProfilesRaw = localStorage.getItem(STORAGE_KEYS.PROFILES);
       const version = localStorage.getItem(STORAGE_KEYS.PROFILES_VERSION);
       
-      // Auto-migrate to 61 official GEKRAFS Kota Batu profiles if old mock dataset is detected
+      let profileCount = 0;
+      try {
+        if (storedProfilesRaw) {
+          profileCount = JSON.parse(storedProfilesRaw).length;
+        }
+      } catch {
+        profileCount = 0;
+      }
+
+      // Auto-migrate to 62 official GEKRAFS Kota Batu profiles if previous dataset is detected
       const needsMigration = 
         !storedProfilesRaw || 
-        version !== 'v2_official_gekrafs_61' || 
+        profileCount !== 62 ||
+        version !== 'v3_official_gekrafs_62' || 
         storedProfilesRaw.includes('Warung Kopi Kenangan Nusantara') ||
+        !storedProfilesRaw.includes('Inovasi Pangan Lestari') ||
+        !storedProfilesRaw.includes('Enok Sri Kustiyah') ||
+        !storedProfilesRaw.includes('Choirul Anisah') ||
         !storedProfilesRaw.includes('obeecreatives');
 
       if (needsMigration) {
         localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(SEED_PROFILES));
-        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v2_official_gekrafs_61');
+        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v3_official_gekrafs_62');
         localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, SEED_PROFILES[0].id);
         localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, SEED_PROFILES[0].namaUsaha);
       }
