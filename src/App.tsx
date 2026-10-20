@@ -89,6 +89,14 @@ export default function App() {
   useEffect(() => {
     refreshLocalData();
     checkBackend();
+
+    const handleSynced = () => {
+      refreshLocalData();
+    };
+    window.addEventListener('untungin:trx_synced', handleSynced);
+    return () => {
+      window.removeEventListener('untungin:trx_synced', handleSynced);
+    };
   }, [refreshLocalData, checkBackend]);
 
   // Profile switch & unlock

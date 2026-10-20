@@ -1,4 +1,7 @@
 import { AkunKas, VoucherPro, Transaksi, HutangPiutang } from '../types';
+import { OFFICIAL_KAS_TRANSACTIONS } from './cloudTransactions';
+
+export { OFFICIAL_KAS_TRANSACTIONS };
 
 export const DEFAULT_ACCOUNTS: AkunKas[] = [
   {
@@ -108,6 +111,10 @@ export const DEFAULT_CATEGORIES = {
 };
 
 export function getSampleTransactions(umkmId: string): Transaksi[] {
+  const fromCloud = OFFICIAL_KAS_TRANSACTIONS.filter(t => t.umkmId === umkmId);
+  if (fromCloud.length > 0) {
+    return fromCloud;
+  }
   const today = new Date();
   const year = today.getFullYear();
   const month = (today.getMonth() + 1).toString().padStart(2, '0');

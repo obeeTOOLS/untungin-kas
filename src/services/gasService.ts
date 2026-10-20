@@ -1,14 +1,14 @@
 import { UMKMProfile, Transaksi, AkunKas, VoucherPro, AuditLog, HutangPiutang } from '../types';
 import { SEED_PROFILES } from '../data/seedProfiles';
-import { DEFAULT_ACCOUNTS, SEED_VOUCHERS, getSampleTransactions, getSampleHutangPiutang } from '../data/seedData';
+import { DEFAULT_ACCOUNTS, SEED_VOUCHERS, getSampleTransactions, getSampleHutangPiutang, OFFICIAL_KAS_TRANSACTIONS } from '../data/seedData';
 
 export const GAS_ENDPOINT = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GAS_API_URL) 
   ? import.meta.env.VITE_GAS_API_URL 
-  : 'https://script.google.com/macros/s/AKfycbzt3TEU-OQioP9OxUm5BPHuuAihKqF1tJDDb396T4TguB2V_-KpKMaLD5O8VD6xAiVk/exec';
+  : 'https://script.google.com/macros/s/AKfycbwpLuT1HtWX7I9l1ABa2YthchqYEZ4cEuLcmXjeyW_PHOgXw9D9GhoOROySnKFHr1vO/exec';
 
 export const SPREADSHEET_ID = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SPREADSHEET_ID)
   ? import.meta.env.VITE_SPREADSHEET_ID
-  : '1l_MT50H0blcu771UYMm6Tqc4Q1R2s4U2iOglx-cW4kE';
+  : '183uoyYw6opnr3w7T6oljvwuy5Rzs7GZE7fM3vi_pwm4';
 
 const STORAGE_KEYS = {
   PROFILES: 'untungin_std_profiles_v1',
@@ -39,11 +39,15 @@ class GasService {
       window.addEventListener('online', () => {
         this.isOnline = true;
         this.flushQueue();
+        this.syncCloudTransactions();
       });
       window.addEventListener('offline', () => {
         this.isOnline = false;
       });
       this.initStorage();
+      if (this.isOnline) {
+        setTimeout(() => this.syncCloudTransactions(), 1000);
+      }
     }
   }
 
@@ -61,11 +65,20 @@ class GasService {
         profileCount = 0;
       }
 
-      // Auto-migrate to 62 official GEKRAFS Kota Batu profiles if previous dataset is detected
+      // Auto-migrate to 62 official GEKRAFS Kota Batu profiles & 114 cloud transactions
+      const storedTrxRaw = localStorage.getItem(STORAGE_KEYS.TRANSAKSI);
+      let trxCount = 0;
+      try {
+        if (storedTrxRaw) trxCount = JSON.parse(storedTrxRaw).length;
+      } catch {
+        trxCount = 0;
+      }
+
       const needsMigration = 
         !storedProfilesRaw || 
         profileCount !== 62 ||
-        version !== 'v3_official_gekrafs_62' || 
+        trxCount < 114 ||
+        version !== 'v4_official_sheet_183_sync' || 
         storedProfilesRaw.includes('Warung Kopi Kenangan Nusantara') ||
         !storedProfilesRaw.includes('Inovasi Pangan Lestari') ||
         !storedProfilesRaw.includes('Enok Sri Kustiyah') ||
@@ -74,9 +87,10 @@ class GasService {
 
       if (needsMigration) {
         localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(SEED_PROFILES));
-        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v3_official_gekrafs_62');
+        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v4_official_sheet_183_sync');
         localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, SEED_PROFILES[0].id);
         localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, SEED_PROFILES[0].namaUsaha);
+        localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(OFFICIAL_KAS_TRANSACTIONS));
       }
       if (!localStorage.getItem(STORAGE_KEYS.AKUN)) {
         localStorage.setItem(STORAGE_KEYS.AKUN, JSON.stringify(DEFAULT_ACCOUNTS));
@@ -85,8 +99,7 @@ class GasService {
         localStorage.setItem(STORAGE_KEYS.VOUCHER, JSON.stringify(SEED_VOUCHERS));
       }
       if (!localStorage.getItem(STORAGE_KEYS.TRANSAKSI)) {
-        const defaultTrx = getSampleTransactions(SEED_PROFILES[0].id);
-        localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(defaultTrx));
+        localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(OFFICIAL_KAS_TRANSACTIONS));
       }
       if (!localStorage.getItem(STORAGE_KEYS.HUTANG_PIUTANG)) {
         const defaultDebt = getSampleHutangPiutang(SEED_PROFILES[0].id, SEED_PROFILES[0].namaUsaha);
@@ -388,6 +401,104 @@ class GasService {
       return [];
     }
   }
+
+  // Sync live transactions from official Google Sheet Kas_Transaksi via gviz
+  async syncCloudTransactions(): Promise<{ success: boolean; newCount: number; total: number }> {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Kas_Transaksi&_t=${Date.now()}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) return { success: false, newCount: 0, total: this.getTransactions().length };
+
+      const csvText = await res.text();
+      const rows: string[][] = [];
+      let row: string[] = [];
+      let inQuotes = false;
+      let field = '';
+      for (let i = 0; i < csvText.length; i++) {
+        const c = csvText[i];
+        if (inQuotes) {
+          if (c === '"') {
+            if (i + 1 < csvText.length && csvText[i + 1] === '"') { field += '"'; i++; }
+            else { inQuotes = false; }
+          } else { field += c; }
+        } else {
+          if (c === '"') { inQuotes = true; }
+          else if (c === ',') { row.push(field); field = ''; }
+          else if (c === '\n' || c === '\r') {
+            if (c === '\r' && i + 1 < csvText.length && csvText[i + 1] === '\n') i++;
+            row.push(field); field = '';
+            if (row.length > 1 || (row.length === 1 && row[0] !== '')) rows.push(row);
+            row = [];
+          } else { field += c; }
+        }
+      }
+      if (field || row.length > 0) { row.push(field); rows.push(row); }
+
+      if (rows.length <= 1) return { success: true, newCount: 0, total: this.getTransactions().length };
+
+      const profiles = this.getProfiles();
+      const nameToId = new Map<string, string>();
+      profiles.forEach(p => {
+        nameToId.set(p.namaUsaha.toLowerCase().trim(), p.id);
+      });
+      // Aliases
+      nameToId.set('kriups keripik sayur dan buah', nameToId.get('kriups!') || 'umkm-05');
+      nameToId.set('kripik lokal dewi nurjan mbah batu', nameToId.get('kripik lokal dewi nurjan mbah batu') || 'umkm-12');
+
+      const localTrx = this.getTransactions();
+      const existingIds = new Set(localTrx.map(t => t.id));
+      let newCount = 0;
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const txId = r[1]?.trim();
+        const namaUsaha = r[2]?.trim();
+        if (!txId || !namaUsaha) continue;
+
+        if (!existingIds.has(txId)) {
+          const jenis = (r[4]?.trim() || '').toLowerCase();
+          const tipe = (jenis === 'income' || jenis === 'pemasukan')
+            ? 'PEMASUKAN'
+            : (jenis === 'expense' || jenis === 'pengeluaran')
+              ? 'PENGELUARAN'
+              : 'TRANSFER';
+          const nominal = parseFloat(r[6]?.trim()) || 0;
+          const umkmId = nameToId.get(namaUsaha.toLowerCase()) || profiles[0].id;
+          const tanggal = r[3]?.trim() || new Date().toISOString().split('T')[0];
+          const createdAt = r[11]?.trim() || new Date().toISOString();
+
+          localTrx.push({
+            id: txId,
+            umkmId,
+            tipe,
+            tanggal,
+            kategori: r[5]?.trim() || 'Umum',
+            nominal,
+            akunId: r[7]?.trim() || 'akun-tunai',
+            akunTujuanId: r[8]?.trim() || undefined,
+            keterangan: r[9]?.trim() || `${tipe} ${r[5]?.trim() || ''}`,
+            createdAt,
+            updatedAt: createdAt
+          });
+          existingIds.add(txId);
+          newCount++;
+        }
+      }
+
+      if (newCount > 0) {
+        localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(localTrx));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('untungin:trx_synced', { detail: { newCount, total: localTrx.length } }));
+        }
+      }
+
+      return { success: true, newCount, total: localTrx.length };
+    } catch (e) {
+      console.warn('Sync cloud transactions failed:', e);
+      return { success: false, newCount: 0, total: this.getTransactions().length };
+    }
+  }
+
 
   addTransaction(trxData: Omit<Transaksi, 'id' | 'createdAt' | 'updatedAt'>): { success: boolean; transaction?: Transaksi; message?: string } {
     const profile = this.getProfileById(trxData.umkmId);
