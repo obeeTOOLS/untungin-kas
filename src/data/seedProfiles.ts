@@ -78,7 +78,7 @@ export const SEED_PROFILES: UMKMProfile[] = OFFICIAL_PROFILES.map((p, idx) => ({
   lisensiExpiredAt: 'LIFETIME',
   durasiPaket: 'Lifetime',
   pinKas: '123456',
-  saldoAwal: 5000000,
+  saldoAwal: 0,
   createdAt: '2026-01-01',
   whatsapp: p.whatsapp,
   kotaKabupaten: p.kotaKabupaten,

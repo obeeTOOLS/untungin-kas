@@ -74,11 +74,18 @@ class GasService {
         trxCount = 0;
       }
 
+      const storedDebtRaw = localStorage.getItem(STORAGE_KEYS.HUTANG_PIUTANG);
+      const hasDummyDebts = storedDebtRaw && (storedDebtRaw.includes('DEBT-STD-001') || storedDebtRaw.includes('Ibu Hj. Siti'));
+      const storedAkunRaw = localStorage.getItem(STORAGE_KEYS.AKUN);
+      const hasDummyBalances = storedAkunRaw && storedAkunRaw.includes('12450000');
+
       const needsMigration = 
         !storedProfilesRaw || 
         profileCount !== 62 ||
         trxCount < 114 ||
-        version !== 'v4_official_sheet_183_sync' || 
+        hasDummyDebts ||
+        hasDummyBalances ||
+        version !== 'v5_official_pure_partnerup_sync' || 
         storedProfilesRaw.includes('Warung Kopi Kenangan Nusantara') ||
         !storedProfilesRaw.includes('Inovasi Pangan Lestari') ||
         !storedProfilesRaw.includes('Enok Sri Kustiyah') ||
@@ -87,10 +94,13 @@ class GasService {
 
       if (needsMigration) {
         localStorage.setItem(STORAGE_KEYS.PROFILES, JSON.stringify(SEED_PROFILES));
-        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v4_official_sheet_183_sync');
+        localStorage.setItem(STORAGE_KEYS.PROFILES_VERSION, 'v5_official_pure_partnerup_sync');
         localStorage.setItem(STORAGE_KEYS.ACTIVE_PROFILE_ID, SEED_PROFILES[0].id);
         localStorage.setItem(STORAGE_KEYS.ACTIVE_BUSINESS, SEED_PROFILES[0].namaUsaha);
         localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(OFFICIAL_KAS_TRANSACTIONS));
+        localStorage.setItem(STORAGE_KEYS.AKUN, JSON.stringify(DEFAULT_ACCOUNTS));
+        localStorage.setItem(STORAGE_KEYS.VOUCHER, JSON.stringify(SEED_VOUCHERS));
+        localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify([]));
       }
       if (!localStorage.getItem(STORAGE_KEYS.AKUN)) {
         localStorage.setItem(STORAGE_KEYS.AKUN, JSON.stringify(DEFAULT_ACCOUNTS));
@@ -102,8 +112,7 @@ class GasService {
         localStorage.setItem(STORAGE_KEYS.TRANSAKSI, JSON.stringify(OFFICIAL_KAS_TRANSACTIONS));
       }
       if (!localStorage.getItem(STORAGE_KEYS.HUTANG_PIUTANG)) {
-        const defaultDebt = getSampleHutangPiutang(SEED_PROFILES[0].id, SEED_PROFILES[0].namaUsaha);
-        localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify(defaultDebt));
+        localStorage.setItem(STORAGE_KEYS.HUTANG_PIUTANG, JSON.stringify([]));
       }
       if (!localStorage.getItem(STORAGE_KEYS.AUDIT)) {
         localStorage.setItem(STORAGE_KEYS.AUDIT, JSON.stringify([
